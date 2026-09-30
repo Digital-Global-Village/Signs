@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#1f7a4d">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Signatures">
+    <meta name="description" content="Turn paper signatures into transparent PNG images, privately and offline.">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <title>Offline Signature Cleaner</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="workspace" aria-label="Signature workspace">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Offline tool</p>
+            <h1>Signature Cleaner</h1>
+          </div>
+          <div class="photo-actions">
+          <label class="upload-button">
+            <input id="imageInput" type="file" accept="image/*">
+            Choose photo
+          </label>
+          <label class="upload-button secondary">
+            <input id="cameraInput" type="file" accept="image/*" capture="environment">
+            Take photo
+          </label>
+          </div>
+        </header>
+
+        <div id="dropZone" class="drop-zone">
+          <div class="empty-state">
+            <div class="empty-icon" aria-hidden="true">✒</div>
+            <h2>Drop in a photo of your signature</h2>
+            <p>Works fully offline in this browser. Use a dark pen on plain white paper for the cleanest result.</p>
+          </div>
+          <div id="canvasWrap" class="canvas-wrap hidden">
+            <canvas id="previewCanvas" aria-label="Processed signature preview"></canvas>
+          </div>
+        </div>
+
+        <div class="preview-options" aria-label="Preview background">
+          <span>Preview on</span>
+          <button class="swatch active" data-bg="checker" type="button" aria-label="Checker background"></button>
+          <button class="swatch white" data-bg="white" type="button" aria-label="White background"></button>
+          <button class="swatch cream" data-bg="cream" type="button" aria-label="Cream background"></button>
+          <button class="swatch dark" data-bg="dark" type="button" aria-label="Dark background"></button>
+        </div>
+      </section>
+
+      <aside class="panel" aria-label="Signature controls">
+        <section>
+          <h2>Clean Up</h2>
+          <div class="control">
+            <label for="threshold">
+              Background removal
+              <output id="thresholdValue">78</output>
+            </label>
+            <input id="threshold" type="range" min="10" max="150" value="78">
+          </div>
+
+          <div class="control">
+            <label for="softness">
+              Edge softness
+              <output id="softnessValue">22</output>
+            </label>
+            <input id="softness" type="range" min="0" max="80" value="22">
+          </div>
+
+          <div class="control">
+            <label for="darkness">
+              Ink strength
+              <output id="darknessValue">32</output>
+            </label>
+            <input id="darkness" type="range" min="0" max="80" value="32">
+          </div>
+
+          <label class="toggle">
+            <input id="blackInk" type="checkbox">
+            Convert ink to solid black
+          </label>
+        </section>
+
+        <section>
+          <h2>Output</h2>
+          <div class="button-row">
+            <button id="autoCropButton" class="secondary" type="button" disabled>Auto crop</button>
+            <button id="resetButton" class="secondary" type="button" disabled>Reset</button>
+          </div>
+          <button id="downloadButton" class="primary" type="button" disabled>Download transparent PNG</button>
+          <button id="shareButton" class="secondary hidden" type="button" disabled>Share PNG</button>
+          <p id="status" class="status" role="status">No image loaded.</p>
+        </section>
+
+        <section class="tips">
+          <h2>Best Results</h2>
+          <ul>
+            <li>Sign with a black or blue pen on clean white paper.</li>
+            <li>Take the photo in bright, even light without shadows.</li>
+            <li>Crop after cleanup so the PNG imports neatly into Word or PDF tools.</li>
+          </ul>
+        </section>
+        <section>
+          <h2>Install on Your Phone</h2>
+          <button id="installButton" class="secondary hidden" type="button">Install app</button>
+          <p id="installHelp" class="status"></p>
+          <p id="offlineStatus" class="status" role="status"></p>
+        </section>
+      </aside>
+    </main>
+
+    <script src="app.js"></script>
+    <script src="install.js"></script>
+  </body>
+</html>
