@@ -13,6 +13,11 @@ const softnessValue = document.querySelector("#softnessValue");
 const darknessValue = document.querySelector("#darknessValue");
 const blackInk = document.querySelector("#blackInk");
 const autoCropButton = document.querySelector("#autoCropButton");
+const manualCropButton = document.querySelector("#manualCropButton");
+const restoreCropButton = document.querySelector("#restoreCropButton");
+const cropActions = document.querySelector("#cropActions");
+const applyCropButton = document.querySelector("#applyCropButton");
+const cropSelection = document.querySelector("#cropSelection");
 const resetButton = document.querySelector("#resetButton");
 const downloadButton = document.querySelector("#downloadButton");
 const shareButton = document.querySelector("#shareButton");
@@ -22,6 +27,11 @@ const swatches = document.querySelectorAll(".swatch");
 let originalImageData = null;
 let originalFileName = "signature";
 let cropRect = null;
+let autoCropRegion = null;
+let selectingCrop = false;
+let cropStart = null;
+let draftCrop = null;
+let cropPointer = null;
 if (navigator.share && navigator.canShare) shareButton.classList.remove("hidden");
 
 canvasWrap.classList.add("checker");
@@ -38,6 +48,8 @@ function updateOutputValues() {
 
 function enableControls(enabled) {
   autoCropButton.disabled = !enabled;
+  manualCropButton.disabled = !enabled;
+  restoreCropButton.disabled = !enabled || !cropRect;
   resetButton.disabled = !enabled;
   downloadButton.disabled = !enabled;
   shareButton.disabled = !enabled;
@@ -84,6 +96,8 @@ function loadImageFromFile(file) {
 
       originalImageData = sourceCtx.getImageData(0, 0, fitted.width, fitted.height);
       cropRect = null;
+      autoCropRegion = null;
+      finishCropSelection();
       emptyState.classList.add("hidden");
       canvasWrap.classList.remove("hidden");
       enableControls(true);
@@ -165,11 +179,19 @@ function renderSignature() {
     return;
   }
 
+  if (autoCropRegion) {
+    const bounds = findInkBounds(cropImageData(processed, autoCropRegion));
+    cropRect = bounds ? {
+      ...bounds, x: bounds.x + autoCropRegion.x, y: bounds.y + autoCropRegion.y,
+    } : autoCropRegion;
+  }
   const visibleImage = cropImageData(processed, cropRect);
   previewCanvas.width = visibleImage.width;
   previewCanvas.height = visibleImage.height;
   ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
   ctx.putImageData(visibleImage, 0, 0);
+  restoreCropButton.disabled = !cropRect || selectingCrop;
+  drawCropSelection();
 }
 
 function findInkBounds(imageData) {
@@ -210,19 +232,26 @@ function autoCrop() {
     return;
   }
 
-  const bounds = findInkBounds(processed);
+  finishCropSelection();
+  // Keep the selected region as the search area so later cleanup can expand the bounds.
+  const region = autoCropRegion || cropRect || {
+    x: 0, y: 0, width: processed.width, height: processed.height,
+  };
+  const bounds = findInkBounds(cropImageData(processed, region));
   if (!bounds) {
     setStatus("I could not find enough ink to crop. Lower background removal and try again.");
     return;
   }
 
-  cropRect = bounds;
+  autoCropRegion = region;
   renderSignature();
   setStatus("Cropped to the visible ink. Download when it looks right.");
 }
 
 function resetImage() {
+  finishCropSelection();
   cropRect = null;
+  autoCropRegion = null;
   threshold.value = 78;
   softness.value = 22;
   darkness.value = 32;
@@ -231,6 +260,123 @@ function resetImage() {
   renderSignature();
   setStatus("Reset cleanup settings and crop.");
 }
+
+function finishCropSelection() {
+  if (cropPointer !== null && previewCanvas.hasPointerCapture(cropPointer)) {
+    previewCanvas.releasePointerCapture(cropPointer);
+  }
+  selectingCrop = false;
+  draftCrop = null;
+  cropStart = null;
+  cropPointer = null;
+  previewCanvas.classList.remove("selecting-crop");
+  cropActions.classList.add("hidden");
+  cropSelection.classList.add("hidden");
+  manualCropButton.setAttribute("aria-pressed", "false");
+  enableControls(Boolean(originalImageData));
+}
+
+function canvasPoint(event) {
+  const rect = previewCanvas.getBoundingClientRect();
+  return {
+    x: Math.max(0, Math.min(previewCanvas.width, (event.clientX - rect.left) * previewCanvas.width / rect.width)),
+    y: Math.max(0, Math.min(previewCanvas.height, (event.clientY - rect.top) * previewCanvas.height / rect.height)),
+  };
+}
+
+function selectionRect(start, end, width, height) {
+  const x = Math.max(0, Math.floor(Math.min(start.x, end.x)));
+  const y = Math.max(0, Math.floor(Math.min(start.y, end.y)));
+  return {
+    x, y,
+    width: Math.min(width, Math.ceil(Math.max(start.x, end.x))) - x,
+    height: Math.min(height, Math.ceil(Math.max(start.y, end.y))) - y,
+  };
+}
+
+function drawCropSelection() {
+  cropSelection.classList.add("hidden");
+  if (!selectingCrop || !draftCrop) return;
+  cropSelection.style.left = `${draftCrop.x / previewCanvas.width * 100}%`;
+  cropSelection.style.top = `${draftCrop.y / previewCanvas.height * 100}%`;
+  cropSelection.style.width = `${draftCrop.width / previewCanvas.width * 100}%`;
+  cropSelection.style.height = `${draftCrop.height / previewCanvas.height * 100}%`;
+  cropSelection.classList.remove("hidden");
+}
+
+manualCropButton.addEventListener("click", () => {
+  if (!originalImageData) return;
+  finishCropSelection();
+  selectingCrop = true;
+  previewCanvas.classList.add("selecting-crop");
+  cropActions.classList.remove("hidden");
+  manualCropButton.setAttribute("aria-pressed", "true");
+  applyCropButton.disabled = true;
+  autoCropButton.disabled = true;
+  restoreCropButton.disabled = true;
+  downloadButton.disabled = true;
+  shareButton.disabled = true;
+  setStatus("Drag across the preview to select the signature, then Apply crop.");
+});
+
+previewCanvas.addEventListener("pointerdown", (event) => {
+  if (!selectingCrop || !event.isPrimary || event.button !== 0) return;
+  event.preventDefault();
+  cropPointer = event.pointerId;
+  cropStart = canvasPoint(event);
+  draftCrop = null;
+  applyCropButton.disabled = true;
+  previewCanvas.setPointerCapture(event.pointerId);
+  drawCropSelection();
+});
+
+function updateCropDrag(event) {
+  if (!selectingCrop || !cropStart || event.pointerId !== cropPointer) return;
+  draftCrop = selectionRect(cropStart, canvasPoint(event), previewCanvas.width, previewCanvas.height);
+  applyCropButton.disabled = draftCrop.width < 2 || draftCrop.height < 2;
+  drawCropSelection();
+}
+
+previewCanvas.addEventListener("pointermove", updateCropDrag);
+previewCanvas.addEventListener("pointerup", (event) => {
+  updateCropDrag(event);
+  if (event.pointerId !== cropPointer) return;
+  cropStart = null;
+  previewCanvas.releasePointerCapture(event.pointerId);
+  cropPointer = null;
+});
+previewCanvas.addEventListener("pointercancel", () => {
+  finishCropSelection();
+  setStatus("Crop cancelled.");
+});
+
+applyCropButton.addEventListener("click", () => {
+  if (!draftCrop || draftCrop.width < 2 || draftCrop.height < 2) return;
+  cropRect = {
+    ...draftCrop, x: draftCrop.x + (cropRect?.x || 0), y: draftCrop.y + (cropRect?.y || 0),
+  };
+  autoCropRegion = null;
+  finishCropSelection();
+  renderSignature();
+  setStatus(`Cropped to ${cropRect.width} x ${cropRect.height} pixels.`);
+});
+document.querySelector("#cancelCropButton").addEventListener("click", () => {
+  finishCropSelection();
+  setStatus("Crop cancelled.");
+});
+restoreCropButton.addEventListener("click", () => {
+  finishCropSelection();
+  cropRect = null;
+  autoCropRegion = null;
+  renderSignature();
+  setStatus("Full image restored. Cleanup settings kept.");
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && selectingCrop) {
+    finishCropSelection();
+    setStatus("Crop cancelled.");
+  }
+});
 
 function downloadPng() {
   if (!originalImageData) {
@@ -291,6 +437,7 @@ dropZone.addEventListener("drop", (event) => {
 
 [threshold, softness, darkness, blackInk].forEach((control) => {
   control.addEventListener("input", () => {
+    if (selectingCrop) finishCropSelection();
     updateOutputValues();
     renderSignature();
   });

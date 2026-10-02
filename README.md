@@ -7,7 +7,7 @@ This is a fully offline browser app for turning a photo of a paper signature int
 1. Open `index.html` in a browser.
 2. Choose or drag in a photo of your signature.
 3. Adjust background removal, edge softness, and ink strength until only the ink remains.
-4. Use **Auto crop** to trim extra paper space.
+4. Use **Auto crop** to trim extra paper space, or **Select crop**, drag over the preview, then **Apply crop**. **Restore crop** brings back the whole image without changing cleanup settings. Auto crop follows cleanup changes and stays within your manual selection.
 5. Click **Download transparent PNG**.
 
 ## Install on a Phone

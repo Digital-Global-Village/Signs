@@ -1,4 +1,4 @@
-const CACHE_NAME = "signature-cleaner-v1.0.0";
+const CACHE_NAME = "signature-cleaner-v1.0.1";
 const APP_FILES = [
   "./", "./index.html", "./styles.css", "./app.js", "./install.js",
   "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png",

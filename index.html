@@ -41,7 +41,10 @@
             <p>Works fully offline in this browser. Use a dark pen on plain white paper for the cleanest result.</p>
           </div>
           <div id="canvasWrap" class="canvas-wrap hidden">
-            <canvas id="previewCanvas" aria-label="Processed signature preview"></canvas>
+            <div class="canvas-stage">
+              <canvas id="previewCanvas" aria-label="Processed signature preview"></canvas>
+              <div id="cropSelection" class="crop-selection hidden" aria-hidden="true"></div>
+            </div>
           </div>
         </div>
 
@@ -91,7 +94,13 @@
           <h2>Output</h2>
           <div class="button-row">
             <button id="autoCropButton" class="secondary" type="button" disabled>Auto crop</button>
+            <button id="manualCropButton" class="secondary" type="button" disabled aria-pressed="false">Select crop</button>
+            <button id="restoreCropButton" class="secondary" type="button" disabled>Restore crop</button>
             <button id="resetButton" class="secondary" type="button" disabled>Reset</button>
+          </div>
+          <div id="cropActions" class="button-row hidden">
+            <button id="applyCropButton" class="secondary" type="button" disabled>Apply crop</button>
+            <button id="cancelCropButton" class="secondary" type="button">Cancel</button>
           </div>
           <button id="downloadButton" class="primary" type="button" disabled>Download transparent PNG</button>
           <button id="shareButton" class="secondary hidden" type="button" disabled>Share PNG</button>

@@ -203,6 +203,29 @@ canvas {
   object-fit: contain;
 }
 
+.canvas-stage {
+  position: relative;
+  max-width: 100%;
+  width: fit-content;
+}
+
+.canvas-stage canvas {
+  width: auto;
+  height: auto;
+}
+
+canvas.selecting-crop {
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.crop-selection {
+  position: absolute;
+  border: 2px solid #1f7a4d;
+  background: rgba(31, 122, 77, 0.12);
+  pointer-events: none;
+}
+
 .preview-options {
   display: flex;
   align-items: center;
